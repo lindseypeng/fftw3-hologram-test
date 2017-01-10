@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int complexnumber(int step1,int width1, int height1)
+fftw_complex* complexnumber(int step1,int width1, int height1)
 {
     const complex<double> J (0.0,1.0);
     const complex<double> d (130.0,0.0);
@@ -53,6 +53,8 @@ int complexnumber(int step1,int width1, int height1)
         fftw_complex* in = reinterpret_cast<fftw_complex*>(&num[j]);
     }
 
-     return 0;
+     return in;
     }
+
+
 
