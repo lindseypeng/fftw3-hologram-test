@@ -1,13 +1,20 @@
 #include <stdlib.h>
 #include <math.h>
+#include <complex>
 #include <fftw3.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-#include"complexnumber.h"
+//#include"complexnumber.h"
 
 using namespace cv;
 using namespace std;
+
+complex <double> num[1024*1280];
+complex <double> den[1024*1280];
+complex <double> g[1024*1280];
+double XX[1024*1280];
+double YY[1024*1280];
 
 
 int main(void)
@@ -21,6 +28,7 @@ int main(void)
     fftw_complex    *data_in;
     fftw_complex    *fft1;
     fftw_complex    *fft2;//added
+    fftw_complex    *in;//added
     fftw_complex    *products;//added
     fftw_complex    *ifft;
     fftw_plan       plan_f;
@@ -30,9 +38,12 @@ int main(void)
     int             width, height, step;
     int             i, j, k;
 
+    const complex<double> J (0.0,1.0);
+    const complex<double> d (130.0,0.0);
+    const complex<double> PI(M_PI,0.0);//distance in mm
 
 
-    // load original image
+// load original image
     img1= imread("/home/alinsi/codeblocks/fft2/3beads2.tif", CV_LOAD_IMAGE_GRAYSCALE);
 
 
@@ -45,6 +56,53 @@ int main(void)
     step	  = img1.step;
     img1_data =  img1.data;
     img2_data =  img2.data;
+///////////////////////////////////
+//separate transfer function //
+    double dx=0.005195;
+    double dy=0.005203125;
+    double lambda0=0.000488;
+
+
+
+
+
+    //complex <double> *num ;
+    //num=new complex<double>(width*height);
+    //complex <double> *den ;
+    //den=new complex<double>(width*height);
+    //complex <double> *g ;
+    //g=new complex<double>(width*height);
+
+//for YY row major loop
+    for (int j=0,k=0;j<height;j++){
+        for (int i=0;i<width;i++){
+        YY[k]=j*dy;
+        k++;
+        }
+           }
+//for XX row major loop
+
+    for (int j=0,k=0;j<height;j++){
+        for (int i=0;i<width;i++){
+        XX[k]=i*dx;
+        k++;
+        }
+    }
+
+//creating row major array of transfer function g
+    for (int j=0;j<height*width;j++){
+        num[j]=exp(J*2.0*M_PI/lambda0*sqrt(pow(d,2.0)+pow(XX[j],2.0)+pow(YY[j],2.0)));
+        den[j]=sqrt(pow(d,2.0)+pow(XX[j],2.0)+pow(YY[j],2.0));
+        g[j]=-J/lambda0*num[j]/den[j];
+    }
+
+//converting complex(double) to fftw_complex double to *in
+        for (int j=0;j<height*width;j++)
+    {
+        in = reinterpret_cast<fftw_complex*>(&g[j]);
+    }
+//////////////////////end of transfer function//////////////////////////////
+
 
 
 
@@ -52,9 +110,9 @@ int main(void)
     data_in = fftw_alloc_complex(width * height);//raw image data
     fft1    = fftw_alloc_complex(width * height);//fourier transform of image
     fft2    = fftw_alloc_complex(width * height);//fourier transform of transfer function.added
+    in      = fftw_alloc_complex(width * height);//added transfer
     products= fftw_alloc_complex(width * height);//product of fft1 and fft2.added
     ifft    = fftw_alloc_complex(width * height);//inverse fft of products
-
 
 
     // create plans
@@ -73,15 +131,15 @@ int main(void)
 
     // perform FFT
     fftw_execute( plan_f );
-    //perform FFT on products
+    //perform FFT on transfer function
     fftw_execute( plan_g ); //added
 
 
     //now multiple FFT1  FFT2/////////double check multiplication
-    for( i = 0, k = 0 ; i < height ; i++ ) {
+     for( i = 0, k = 0 ; i < height ; i++ ) {
         for( j = 0 ; j < width ; j++ ) {
-           products[k][0] = ( double )img1_data[i * step + j];
-
+            products[k][0] = fft1[k][0]*fft2[k][0];
+            products[k][1] = fft1[k][1]*fft2[k][1];
             k++;
         }
     }
@@ -120,11 +178,19 @@ int main(void)
     cv::destroyWindow( "IFFT" );
     img1.release();
     img2.release();
+   // delete  [] num;
+    //delete  [] den;
+    //delete  [] g;
     fftw_destroy_plan( plan_f );
+    fftw_destroy_plan( plan_g );
     fftw_destroy_plan( plan_b );
     fftw_free( data_in );
-    fftw_free( fft );
+    fftw_free( in );
+    fftw_free( fft1 );
+    fftw_free( fft2 );
     fftw_free( ifft );
 
     return 0;
 }
+
+
