@@ -21,8 +21,12 @@ int main(void)
 {
     cv::Mat img1;
     cv::Mat img2;
+    cv::Mat img3;
+    cv::Mat img4;
     uchar *img1_data;
     uchar *img2_data;
+    uchar *img3_data;
+    uchar *img4_data;
 
 
     fftw_complex    *data_in;
@@ -39,7 +43,7 @@ int main(void)
     int             i, j, k;
 
     const complex<double> J (0.0,1.0);
-    const complex<double> d (130.0,0.0);
+    const complex<double> d (30.0,0.0);
     const complex<double> PI(M_PI,0.0);//distance in mm
 
 
@@ -49,6 +53,8 @@ int main(void)
 
     // create new image for IFFT result
     img2 = img1.clone();
+    img3 = img1.clone();
+    img4 = img1.clone();
 
     // get image properties
     width  	  = img1.size().width;
@@ -56,6 +62,8 @@ int main(void)
     step	  = img1.step;
     img1_data =  img1.data;
     img2_data =  img2.data;
+    img3_data =  img3.data;
+    img4_data =  img4.data;
 ///////////////////////////////////
 //separate transfer function //
     double dx=0.005195;
@@ -110,7 +118,7 @@ int main(void)
     data_in = fftw_alloc_complex(width * height);//raw image data
     fft1    = fftw_alloc_complex(width * height);//fourier transform of image
     fft2    = fftw_alloc_complex(width * height);//fourier transform of transfer function.added
-    in      = fftw_alloc_complex(width * height);//added transfer
+
     products= fftw_alloc_complex(width * height);//product of fft1 and fft2.added
     ifft    = fftw_alloc_complex(width * height);//inverse fft of products
 
@@ -119,6 +127,8 @@ int main(void)
     plan_f = fftw_plan_dft_1d( width * height, data_in, fft1,  FFTW_FORWARD,  FFTW_ESTIMATE );
     plan_g = fftw_plan_dft_1d( width * height, in, fft2,  FFTW_FORWARD,  FFTW_ESTIMATE );//added.in
     plan_b = fftw_plan_dft_1d( width * height, products,     ifft, FFTW_BACKWARD, FFTW_ESTIMATE );//changed fft to products
+
+
 
     // load img1's data to fftw input
     for( i = 0, k = 0 ; i < height ; i++ ) {
@@ -134,7 +144,14 @@ int main(void)
     //perform FFT on transfer function
     fftw_execute( plan_g ); //added
 
-
+    //normalize transfer function fft1 results.added
+      for( i = 0 ; i < ( width * height ) ; i++ ) {
+        fft1[i][0] /= ( double )( width * height );
+    }
+    //normalize Transfer function fft2 resultsadded
+    for( i = 0 ; i < ( width * height ) ; i++ ) {
+        fft2[i][0] /= ( double )( width * height );
+    }
     //now multiple FFT1  FFT2/////////double check multiplication
      for( i = 0, k = 0 ; i < height ; i++ ) {
         for( j = 0 ; j < width ; j++ ) {
@@ -147,24 +164,50 @@ int main(void)
 
     // perform IFFT
     fftw_execute( plan_b );
+//    //normalize transfer function ifft
+//      for( i = 0 ; i < ( width * height ) ; i++ ) {
+//        ifft[i][0] /= ( double )( width * height );
+//    }
 
-    // normalize IFFT result
-    for( i = 0 ; i < ( width * height ) ; i++ ) {
-        ifft[i][0] /= ( double )( width * height );
-    }
+
+
+    //copy fft1 and fft2 results into img3 and img4//added
+    for( i = 0, k = 0 ; i < height ; i++ ) {
+		for( j = 0 ; j < width ; j++ ) {
+			img3_data[i * step + j] = ( uchar )fft1[k++][0];
+		}
+	}
+    for( i = 0, k = 0 ; i < height ; i++ ) {
+		for( j = 0 ; j < width ; j++ ) {
+			img4_data[i * step + j] = ( uchar )fft2[k++][0];
+		}
+	}
+    normalize(img2,img2,0,1,NORM_MINMAX);
 
     // copy IFFT result to img2's data
     for( i = 0, k = 0 ; i < height ; i++ ) {
 		for( j = 0 ; j < width ; j++ ) {
-			img2_data[i * step + j] = ( uchar )ifft[k++][0];
+			img2.data[i * step + j] = ( uchar )ifft[k++][0];
 		}
 	}
+//	cv::Mat fg;
+//    img2.convertTo(fg,CV_32F);
+//    fg=fg+1;
+//    log(fg,fg);
+//    convertScaleAbs(fg,fg);
+//
+//
+
 
     // display images
     cv::namedWindow( "original_image", CV_WINDOW_AUTOSIZE );
     cv::namedWindow( "IFFT", CV_WINDOW_AUTOSIZE );
+    cv::namedWindow( "FFT1", CV_WINDOW_AUTOSIZE );
+    cv::namedWindow( "FFT2", CV_WINDOW_AUTOSIZE );
     cv::imshow( "original_image", img1 );
     cv::imshow( "IFFT", img2 );
+    cv::imshow( "FFT1", img3 );
+    cv::imshow( "FFT2", img4 );
 
     char key;
     while (true) {
@@ -178,6 +221,8 @@ int main(void)
     cv::destroyWindow( "IFFT" );
     img1.release();
     img2.release();
+    img3.release();
+    img4.release();
    // delete  [] num;
     //delete  [] den;
     //delete  [] g;
@@ -192,5 +237,4 @@ int main(void)
 
     return 0;
 }
-
 
