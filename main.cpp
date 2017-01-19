@@ -1,6 +1,4 @@
 
-
-
 #include <stdlib.h>
 #include <math.h>
 #include <complex>
@@ -91,6 +89,7 @@ int main()
 
 
 
+
     // create plans
     plan_f = fftw_plan_dft_2d( height, width, data_in, fft,  FFTW_FORWARD,  FFTW_ESTIMATE );
 
@@ -105,6 +104,15 @@ int main()
             k++;
         }
     }
+
+
+
+for( i = 0; i < 2 ; i++ ) {
+		for( j = 0 ; j < 5 ; j++ ) {
+			double h =img1_data[i*step+j];
+			cout<<"original image at column"<<i <<" and row "<< j <<" is "<<h<<endl;
+		}
+	}
     ////calculating transfer function//
 //for YY row major loop
     for (int j=-height/2,k=0;j<height/2;j++){
@@ -133,28 +141,12 @@ int main()
     }
 //copy the result from complex<doule> to fftw_complex
 memcpy( &gg, &g, sizeof (fftw_complex));
-//checking gg values--good to go
-//for (int i=1306870; i<1306878; i++){
-//
-//    cout<<"tranfer function gg  "<<gg[i][0]<<" + "<<gg[i][1]<<endl;
-//
-//}
+
  // perform FFT
     fftw_execute( plan_f );
 
-//normalize fft
 
-//    for( i = 0 ; i < ( width * height ) ; i++ ) {
-//        fft[i][0] /=(( double )( width * height ));
-//        fft[i][1] /= (( double )( width * height ));
-//
-//    }
 
-//checking values of original in fourier space
-
-    for (int i=1306870; i<1306878; i++){
-        cout<<" fft "<<fft[i][0]<<" + "<<fft[i][1]<<endl;
-    }
 
 //create another plan
 
@@ -163,39 +155,25 @@ plan_g = fftw_plan_dft_2d( height, width, gg, transfer,FFTW_FORWARD, FFTW_ESTIMA
 plan_b = fftw_plan_dft_2d( height, width, transfer,     ifft, FFTW_BACKWARD, FFTW_ESTIMATE );
     //perform another FFT
     fftw_execute( plan_g );
-//normalize transfer results
-
-//    for( i = 0 ; i < ( width * height ) ; i++ ) {
-//        transfer[i][0] /= (( double )( width * height ));
-//        transfer[i][1] /= (( double )( width * height ));
-//
-//    }
-//checking fourier transfer numers and size
-for (int i=1306870; i<1306878; i++){
-
-    cout<<"tranfer function gg  "<<transfer[i][0]<<" + "<<transfer[i][1]<<endl;
-
-}
-
 
 
 //now multiple FFT1  FFT2/////////double check multiplication of copmlex numbers(xu-yv)+(xv+yu)i
-     for( k = 0 ; k < (height*width); k++ ) {
+     for( i=0,k = 0 ; i < (height*width); i++ ) {
 
-            products[k][0] = fft[k][0]*transfer[k][0]-fft[k][1]*transfer[k][1];
-            products[k][1] = fft[k][0]*transfer[k][1]+fft[k][1]*transfer[k][0];
+            products[k][0] = (fft[k][0]*transfer[k][0]-fft[k][1]*transfer[k][1]);
+            products[k][1] = (fft[k][0]*transfer[k][1]+fft[k][1]*transfer[k][0]);
             k++;
         }
+//for (int i=1280; i<1285; i++){
+//
+//        cout<<" products "<< i <<" is "<<products[i][0]<<" + "<<products[i][1]<<endl;
+//    }
+
 
 //create another plan
 plan_I = fftw_plan_dft_2d( height, width, products,inverse,FFTW_BACKWARD, FFTW_ESTIMATE);
 
 
-//test products//
-for (int i=0; i<10; i++){
-        cout<<" products "<<products[i][0]<<" + "<<products[i][1]<<endl;
-    }
-//perform IFFT inverse on products
 
     fftw_execute( plan_I );
 
@@ -206,63 +184,90 @@ for (int i=0; i<10; i++){
 
     }
 
-//for (int i=0; i<10; i++){
-//
-//        cout<<" transfer fourier "<<ifft[i][0]<<ifft[i][0]<<endl;
-//        cout<<" original transfer "<<ifft[i][1]<<" + "<<ifft[i][1]<<endl;
-//
-//
-//    }
-
-//	double *floatPtr = img4.ptr<double>();
-//    //add g into img4
-//    for( i = 0, k = 0 ; i < height ; i++ ) {
-//		for( j = 0 ; j < width ; j++ ) {
-//			*floatPtr++ = (uchar)(g[k].real());
-//			k++;
-//		}
-//	}
 
 
-	    // normalize inverse result
-//    for( i = 0 ; i < ( width * height ) ; i++ ) {
-//        inverse[i][0] /= ( double )( width * height );
-//        inverse[i][1] /= ( double )( width * height );
-//        //log scale//
-//    }
-
-////calculating absolute values
-////    for( i = 0 ; i < ( width * height ) ; i++ ) {
-////        final2[i]=pow(inverse[i][0],2.0)+pow(inverse[i][1],2.0);//log scale//
-//// }
-//// normalize inverse result
-////    for( i = 0 ; i < ( width * height ) ; i++ ) {
-////            final2[i] /= (double) (width*height);//log scale//
-////    }
-    // perform IFFT 
+    // perform IFFT
     fftw_execute( plan_b );
 
 
 
-//     normalize IFFT result
+    // normalize IFFT result
     for( i = 0 ; i < ( width * height ) ; i++ ) {
         ifft[i][0] /= (( double )( width * height ));
         ifft[i][1] /= (( double )( width * height ));
 
     }
 
+
+//obtain magnitude of inverse
+for( i = 0 ; i < ( width * height ) ; i++ ) {
+final2[i]=sqrt(inverse[i][0]*inverse[i][0]+inverse[i][1]*inverse[i][1]);
+
+}
+   for( i = 0 ; i < ( 5 ) ; i++ ) {
+    cout<<"inverse " <<i <<" is "<<inverse[i][0]<<endl;}
+
+for( i = 0 ; i < ( 5 ) ; i++ ) {
+    cout<<"absolute values at element before normalizing " <<i <<" is "<<final2[i]<<endl;}
+
+double max2=final2[0];
+double min2=final2[0];
+
+for( i = 0; i < ( width * height ) ; i++ ) {
+    if (final2[i]>max2)
+        max2=final2[i];
+    if (final2[i]<min2)
+        min2=final2[i];
+}
+
+cout<<"max before normalization is "<<max2<<endl;
+cout<<"min before normalization is "<<min2<<endl;
+
+
+for (i=0,k=0;i<width*height;i++){
+    final2[k] /= max2;
+    final2[k] *= 255;
+k++;
+}
+
+
+for( i = 0 ; i <5 ; i++ ) {
+    cout<<"absolute values at element after normalizing " <<i <<" is "<<final2[i]<<endl;}
+
+double max1=final2[0];
+double min1=final2[0];
+for( i = 0; i < width*height; i++ ) {
+    if (final2[i]>max1)
+        max1=final2[i];
+    if (final2[i]<min1)
+        min1=final2[i];
+}
+
+cout<<"max after normalization is "<<max1<<endl;
+cout<<"min after normalization is "<<min1<<endl;
+
+
     // copy IFFT result to img2's data
     for( i = 0, k = 0 ; i < height ; i++ ) {
 		for( j = 0 ; j < width ; j++ ) {
-			img2_data[i * step + j] = ( uchar )ifft[k++][1];
+			img2_data[i * step + j] = ( uchar )(ifft[k++][0]);
 		}
 	}
-	    //copy real components of transfer data into img3
+	    //copy  transfer data into img3
     for( i = 0, k = 0 ; i < height ; i++ ) {
 		for( j = 0 ; j < width ; j++ ) {
-			img3_data[i * step + j] = ( uchar )inverse[k++][0];
+			img3_data[i * step + j] = ( uchar )(final2[k++]);
 		}
 	}
+//
+for( i = 0; i < 2 ; i++ ) {
+		for( j = 0 ; j < 5; j++ ) {
+			int g =img3_data[i*step+j];
+			cout<<"img3 data at column"<<i <<" and row "<< j <<" is "<<g<<endl;
+		}
+	}
+
+
 
 //		uchar c = 1/log(1+255);
 //		cv::Mat fg;
@@ -322,6 +327,7 @@ for (int i=0; i<10; i++){
     delete [] XX;
     delete [] YY;
     delete [] final2;
+
 
     img1.release();
     img2.release();
