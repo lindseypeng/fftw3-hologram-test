@@ -33,8 +33,6 @@ int main()
     fftw_complex    *gg;
 
     fftw_plan       plan_f;
-    fftw_plan       plan_g;
-    fftw_plan       plan_I;
 
     int             width, height, step;
     int             i, j, k;
@@ -115,11 +113,11 @@ memcpy( &gg, &g, sizeof (fftw_complex));
  // perform FFT
     fftw_execute( plan_f );
 
-//plan_g = fftw_plan_dft_2d( width, height, reinterpret_cast<fftw_complex*>(g), transfer,FFTW_FORWARD, FFTW_ESTIMATE);
-plan_g = fftw_plan_dft_2d( height, width, gg, transfer,FFTW_FORWARD, FFTW_ESTIMATE);
+//reusing plan f
+plan_f = fftw_plan_dft_2d( height, width, gg, transfer,FFTW_FORWARD, FFTW_ESTIMATE);
 
     //perform another FFT
-    fftw_execute( plan_g );
+    fftw_execute( plan_f );
 
 //now multiple FFT1  FFT2/////////double check multiplication of copmlex numbers(xu-yv)+(xv+yu)i
      for( i=0,k = 0 ; i < (height*width); i++ ) {
@@ -129,10 +127,10 @@ plan_g = fftw_plan_dft_2d( height, width, gg, transfer,FFTW_FORWARD, FFTW_ESTIMA
             k++;
         }
 
-//create another plan
-plan_I = fftw_plan_dft_2d( height, width, products,inverse,FFTW_BACKWARD, FFTW_ESTIMATE);
+//reusing plan f
+plan_f = fftw_plan_dft_2d( height, width, products,inverse,FFTW_BACKWARD, FFTW_ESTIMATE);
 
-    fftw_execute( plan_I );
+    fftw_execute( plan_f );
     //    // normalize final inverse result
     for( i = 0 ; i < ( width * height ) ; i++ ) {
         inverse[i][0] /= (( double )( width * height ));
@@ -222,8 +220,7 @@ tmp1.copyTo(q2);
     img3.release();
 
     fftw_destroy_plan( plan_f );
-    fftw_destroy_plan( plan_I );
-    fftw_destroy_plan( plan_g );
+
 
     fftw_free( data_in );
     fftw_free( fft );
@@ -235,3 +232,4 @@ tmp1.copyTo(q2);
 
     return 0;
 }
+//
