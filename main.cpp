@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <math.h>
 #include <complex>
@@ -48,7 +47,7 @@ int main()
 
 
     const complex<double> J (0.0,1.0);
-    const complex<double> d (30.0,0.0);
+    const complex<double> d (130.0,0.0);
     const complex<double> PI(M_PI,0.0);//distance in mm
     double dx=5.32/1024;
     double dy=6.66/1280;
@@ -164,10 +163,6 @@ plan_b = fftw_plan_dft_2d( height, width, transfer,     ifft, FFTW_BACKWARD, FFT
             products[k][1] = (fft[k][0]*transfer[k][1]+fft[k][1]*transfer[k][0]);
             k++;
         }
-//for (int i=1280; i<1285; i++){
-//
-//        cout<<" products "<< i <<" is "<<products[i][0]<<" + "<<products[i][1]<<endl;
-//    }
 
 
 //create another plan
@@ -204,11 +199,6 @@ for( i = 0 ; i < ( width * height ) ; i++ ) {
 final2[i]=sqrt(inverse[i][0]*inverse[i][0]+inverse[i][1]*inverse[i][1]);
 
 }
-   for( i = 0 ; i < ( 5 ) ; i++ ) {
-    cout<<"inverse " <<i <<" is "<<inverse[i][0]<<endl;}
-
-for( i = 0 ; i < ( 5 ) ; i++ ) {
-    cout<<"absolute values at element before normalizing " <<i <<" is "<<final2[i]<<endl;}
 
 double max2=final2[0];
 double min2=final2[0];
@@ -220,9 +210,6 @@ for( i = 0; i < ( width * height ) ; i++ ) {
         min2=final2[i];
 }
 
-cout<<"max before normalization is "<<max2<<endl;
-cout<<"min before normalization is "<<min2<<endl;
-
 
 for (i=0,k=0;i<width*height;i++){
     final2[k] /= max2;
@@ -230,21 +217,6 @@ for (i=0,k=0;i<width*height;i++){
 k++;
 }
 
-
-for( i = 0 ; i <5 ; i++ ) {
-    cout<<"absolute values at element after normalizing " <<i <<" is "<<final2[i]<<endl;}
-
-double max1=final2[0];
-double min1=final2[0];
-for( i = 0; i < width*height; i++ ) {
-    if (final2[i]>max1)
-        max1=final2[i];
-    if (final2[i]<min1)
-        min1=final2[i];
-}
-
-cout<<"max after normalization is "<<max1<<endl;
-cout<<"min after normalization is "<<min1<<endl;
 
 
     // copy IFFT result to img2's data
@@ -259,50 +231,39 @@ cout<<"min after normalization is "<<min1<<endl;
 			img3_data[i * step + j] = ( uchar )(final2[k++]);
 		}
 	}
-//
-for( i = 0; i < 2 ; i++ ) {
-		for( j = 0 ; j < 5; j++ ) {
-			int g =img3_data[i*step+j];
-			cout<<"img3 data at column"<<i <<" and row "<< j <<" is "<<g<<endl;
-		}
-	}
 
 
+int cx = width/2;
+int cy = height/2;
 
-//		uchar c = 1/log(1+255);
-//		cv::Mat fg;
-//        cv::Mat j2;
-//fg=img1.clone;
-//    for( i = 0, k = 0 ; i < height ; i++ ) {
-//		for( j = 0 ; j < width ; j++ ) {
-//			fg[i * step + j]=( uchar )inverse[k++][0]*255;
-//			j2=c*log*(1+fg);
-//		}
-//	}
 
-//    cv::Mat fg;
-//    img3.convertTo(fg,CV_32F);
-//    fg=fg+1;
-//    log(fg,fg);
-//    convertScaleAbs(fg,fg);
-	 //print out the minmax of ifft before normalization
-    double minv;
-    double maxv;
-    Point minL;
-    Point maxL;
+// rearrange the quadrants of Fourier image
+// so that the origin is at the image center
+Mat tmp;
+Mat q0(img3, Rect(0, 0, cx, cy));
 
-    minMaxLoc(img3,&minv,&maxv,&minL,&maxL);
-    cout<<"min val of img3:"<<minv<<endl;
-    cout<<"max val of img3:"<<maxv<<endl;
+Mat q1(img3, Rect(cx, 0, cx, cy));
 
+Mat q2(img3, Rect(0, cy, cx, cy));
+Mat q3(img3, Rect(cx, cy, cx, cy));
+
+q0.copyTo(tmp);
+q3.copyTo(q0);
+tmp.copyTo(q3);
+
+Mat tmp1;
+
+q1.copyTo(tmp1);
+q2.copyTo(q1);
+tmp1.copyTo(q2);
 
 
 //
 //
     // display images
-    cv::namedWindow( "original_image", CV_WINDOW_AUTOSIZE );
-    cv::namedWindow( "Transfer function", CV_WINDOW_AUTOSIZE );
-    cv::namedWindow( "Inverse", CV_WINDOW_AUTOSIZE );
+    cv::namedWindow( "original_image", CV_WINDOW_NORMAL );
+    cv::namedWindow( "Transfer function", CV_WINDOW_NORMAL );
+    cv::namedWindow( "Inverse", CV_WINDOW_NORMAL );
     //cv::namedWindow("transfer",CV_WINDOW_AUTOSIZE);
     cv::imshow( "original_image", img1 );
     cv::imshow( "Transfer function", img2 );
@@ -327,7 +288,7 @@ for( i = 0; i < 2 ; i++ ) {
     delete [] XX;
     delete [] YY;
     delete [] final2;
-
+   //delete [] temporary;
 
     img1.release();
     img2.release();
